@@ -1,0 +1,59 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "jsx": "react-native",
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
+    "moduleResolution": "bundler",
+    "customConditions": [
+      "react-native"
+    ],
+    "skipLibCheck": true,
+    "noEmit": true,
+    "target": "ESNext",
+    "paths": {
+      "convex/*": [
+        "./convex/*"
+      ],
+      "@/convex/*": [
+        "./convex/*"
+      ],
+      "react-native": [
+        "./node_modules/react-native/types_generated/index.d.ts"
+      ],
+      "@expo/vector-icons": [
+        "./node_modules/@expo/vector-icons/build/Icons.d.ts"
+      ],
+      "@expo/vector-icons/*": [
+        "./node_modules/@expo/vector-icons/build/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/assets/*": [
+        "./assets/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx",
+    "convex/**/*",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "example",
+    "node_modules"
+  ],
+  "extends": "expo/tsconfig.base"
+}
