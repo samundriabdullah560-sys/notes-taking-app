@@ -6,16 +6,44 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { NotebookArt } from "../components/Illustrations";
+import { GoogleLogo } from "../components/CustomIcons";
+import { configureGoogleSignIn, performGoogleSignIn } from "../utils/googleAuth";
 import { getCurrentUser } from "../utils/storage";
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const [showWelcome, setShowWelcome] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    configureGoogleSignIn();
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const result = await performGoogleSignIn();
+      setIsGoogleLoading(false);
+
+      if (result.success && result.user) {
+        router.replace("/home" as any);
+      } else if (!result.cancelled && result.error) {
+        Alert.alert("Google Sign-In", result.error);
+      }
+    } catch (err: any) {
+      setIsGoogleLoading(false);
+      Alert.alert(
+        "Google Sign-In Error",
+        err?.message || "Failed to sign in with Google."
+      );
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -106,6 +134,23 @@ export default function WelcomeScreen() {
             onPress={() => router.push("/signup" as any)}
           >
             <Text style={styles.createAccountText}>Create account</Text>
+          </TouchableOpacity>
+
+          {/* Continue with Google Button */}
+          <TouchableOpacity
+            style={[styles.googleBtn, isGoogleLoading && { opacity: 0.7 }]}
+            activeOpacity={0.85}
+            onPress={handleGoogleSignIn}
+            disabled={isGoogleLoading}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator color="#4285F4" size="small" />
+            ) : (
+              <>
+                <GoogleLogo size={20} />
+                <Text style={styles.googleBtnText}>Continue with Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           {/* Log In Link */}
@@ -229,5 +274,28 @@ const styles = StyleSheet.create({
     color: "#6C5CE7",
     fontSize: 14,
     fontWeight: "700",
+  },
+  googleBtn: {
+    width: "100%",
+    height: 52,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 27,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  googleBtnText: {
+    color: "#1E293B",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

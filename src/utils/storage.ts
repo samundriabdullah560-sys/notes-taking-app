@@ -78,6 +78,7 @@ export interface UserAccount {
   password: string;
   createdAt: number;
   profilePic?: string;
+  isGoogleUser?: boolean;
 }
 
 export interface ChecklistItem {
@@ -174,6 +175,61 @@ export async function registerUser(account: {
   await setCurrentUser(newUser);
 
   // New user starts with zero files
+  await AsyncStorage.setItem(
+    `${NOTES_PREFIX}${emailNorm}`,
+    JSON.stringify([])
+  );
+
+  return { success: true, user: newUser };
+}
+
+/**
+ * Save real authenticated Google user session.
+ * If user exists, updates profile; otherwise creates account.
+ */
+export async function saveGoogleUser(googleUser: {
+  email: string;
+  username: string;
+  profilePic?: string;
+}): Promise<{ success: boolean; error?: string; user?: UserAccount }> {
+  const emailNorm = googleUser.email.trim().toLowerCase();
+  if (!emailNorm) {
+    return { success: false, error: "Invalid email." };
+  }
+
+  const users = await getAllUsers();
+  const existingIndex = users.findIndex(
+    (u) => u.email.trim().toLowerCase() === emailNorm
+  );
+
+  if (existingIndex !== -1) {
+    const existing = users[existingIndex];
+    const updatedUser: UserAccount = {
+      ...existing,
+      username: googleUser.username || existing.username,
+      profilePic: googleUser.profilePic || existing.profilePic,
+      isGoogleUser: true,
+    };
+    users[existingIndex] = updatedUser;
+    await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
+    await setCurrentUser(updatedUser);
+    return { success: true, user: updatedUser };
+  }
+
+  const newUser: UserAccount = {
+    username: googleUser.username || emailNorm.split("@")[0],
+    email: emailNorm,
+    password: "",
+    createdAt: Date.now(),
+    profilePic: googleUser.profilePic,
+    isGoogleUser: true,
+  };
+
+  const updated = [...users, newUser];
+  await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updated));
+  await setCurrentUser(newUser);
+
+  // Initialize empty notes for new user
   await AsyncStorage.setItem(
     `${NOTES_PREFIX}${emailNorm}`,
     JSON.stringify([])

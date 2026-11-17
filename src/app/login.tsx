@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,11 +9,14 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { loginUser } from "../utils/storage";
+import { GoogleLogo } from "../components/CustomIcons";
+import { configureGoogleSignIn, performGoogleSignIn } from "../utils/googleAuth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -22,6 +25,32 @@ export default function LoginScreen() {
   const [secureText, setSecureText] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    configureGoogleSignIn();
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    setErrorMessage(null);
+    setIsGoogleLoading(true);
+    try {
+      const result = await performGoogleSignIn();
+      setIsGoogleLoading(false);
+
+      if (result.success && result.user) {
+        router.replace("/home" as any);
+      } else if (!result.cancelled && result.error) {
+        Alert.alert("Google Sign-In", result.error);
+      }
+    } catch (err: any) {
+      setIsGoogleLoading(false);
+      Alert.alert(
+        "Google Sign-In Error",
+        err?.message || "Failed to sign in with Google."
+      );
+    }
+  };
 
   const handleLogin = async () => {
     setErrorMessage(null);
@@ -163,6 +192,23 @@ export default function LoginScreen() {
                 <Text style={styles.signupPromptLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Continue with Google */}
+            <TouchableOpacity
+              style={[styles.googleBtn, isGoogleLoading && { opacity: 0.7 }]}
+              activeOpacity={0.85}
+              onPress={handleGoogleSignIn}
+              disabled={isLoading || isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                <ActivityIndicator color="#4285F4" size="small" />
+              ) : (
+                <>
+                  <GoogleLogo size={20} />
+                  <Text style={styles.googleBtnText}>Continue with Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
             {/* Terms of Service */}
             <Text style={styles.termsText}>
@@ -335,6 +381,29 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     fontSize: 13,
     color: "#6C5CE7",
+    fontWeight: "600",
+  },
+  googleBtn: {
+    width: "100%",
+    height: 52,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  googleBtnText: {
+    color: "#1E293B",
+    fontSize: 15,
     fontWeight: "600",
   },
 });

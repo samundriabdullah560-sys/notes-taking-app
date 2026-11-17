@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,11 +9,14 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { registerUser } from "../utils/storage";
+import { GoogleLogo } from "../components/CustomIcons";
+import { configureGoogleSignIn, performGoogleSignIn } from "../utils/googleAuth";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -25,6 +28,32 @@ export default function SignUpScreen() {
   const [secureConfirm, setSecureConfirm] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    configureGoogleSignIn();
+  }, []);
+
+  const handleGoogleSignUp = async () => {
+    setErrorMessage(null);
+    setIsGoogleLoading(true);
+    try {
+      const result = await performGoogleSignIn();
+      setIsGoogleLoading(false);
+
+      if (result.success && result.user) {
+        router.replace("/home" as any);
+      } else if (!result.cancelled && result.error) {
+        Alert.alert("Google Sign-In", result.error);
+      }
+    } catch (err: any) {
+      setIsGoogleLoading(false);
+      Alert.alert(
+        "Google Sign-In Error",
+        err?.message || "Failed to sign up with Google."
+      );
+    }
+  };
 
   const handleSignUp = async () => {
     setErrorMessage(null);
@@ -182,15 +211,39 @@ export default function SignUpScreen() {
           {/* Action Buttons & Social Auth */}
           <View style={styles.footer}>
             <TouchableOpacity
-              style={[styles.signUpBtn, isLoading && { opacity: 0.7 }]}
+              style={[styles.signUpBtn, (isLoading || isGoogleLoading) && { opacity: 0.7 }]}
               activeOpacity={0.85}
               onPress={handleSignUp}
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <Text style={styles.signUpBtnText}>Sign Up</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* OR Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Continue with Google */}
+            <TouchableOpacity
+              style={[styles.googleBtn, isGoogleLoading && { opacity: 0.7 }]}
+              activeOpacity={0.85}
+              onPress={handleGoogleSignUp}
+              disabled={isLoading || isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                <ActivityIndicator color="#4285F4" size="small" />
+              ) : (
+                <>
+                  <GoogleLogo size={20} />
+                  <Text style={styles.googleBtnText}>Continue with Google</Text>
+                </>
               )}
             </TouchableOpacity>
 
@@ -354,5 +407,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6C5CE7",
     fontWeight: "700",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 14,
+    width: "100%",
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E2E8F0",
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 13,
+    color: "#94A3B8",
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  googleBtn: {
+    width: "100%",
+    height: 52,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  googleBtnText: {
+    color: "#1E293B",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
